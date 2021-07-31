@@ -17,43 +17,64 @@ export default {
     return {
       currencies: ['USD', 'AED' , 'GBP' , 'PKR'],
       currency: '',
-      questionIndex: 0
+      currentId: 1,
+      sequence: { prev: 0, curr: 0 }
     }
   },
   methods:{
     viewCurrency(currency){
+      console.log('currency' , currency)
       this.currency = currency
       this.$modal.show('currency-modal')
-      window.history.pushState({}, "", currency);
+      this.handlePageAdvancement(currency)
     },
     modelCloseHandler(){
       window.history.pushState({}, "", '/');
       this.currency = ''
     },
     PopStateEventHandler(event){
-    let that = this
+      var _to  = history.state ? history.state.sequence : false;
+      var _from = this.sequence;
+      console.log(this.sequence)
+      if( !_to || _from.prev === _to.curr ){
+        return  this.handleBackwards(event)
+      }else {
+        return this.handleForwards(event);
+      }
+    },
+    handleBackwards(event){
       if(event.currentTarget.location.pathname === '/'){
-          that.currency = ''
-          that.$modal.hide('currency-modal')
-       }else{
-        //  let targetCurrency = event.currentTarget.location.pathname.slice(1)
-        //  console.log('targetCurrency' , targetCurrency ,event.currentTarget.location)
-        //  if(that.currencies.indexOf(targetCurrency) !== -1){
-        //    event.preventDefault()
-        //     that.currency = that.currencies[that.currencies.indexOf(targetCurrency)]
-        //     that.$modal.show('currency-modal')
-        //     window.history.pushState({}, "", that.currency);
-        //  }else{
-        //    //let the route behave as normal
-        //  }
+          this.currency = ''
+          this.$modal.hide('currency-modal')
        }
+    },
+    handleForwards(event){
+        let targetCurrency = event.currentTarget.location.pathname.slice(1)
+         if(this.currencies.indexOf(targetCurrency) !== -1){
+            this.currency = this.currencies[this.currencies.indexOf(targetCurrency)]
+            this.$modal.show('currency-modal');
+            this.sequence = { prev: 0, curr: 0 }
+            this.$router.push('/')
+            this.handlePageAdvancement(targetCurrency)
+            setTimeout(() => {
+            this.viewCurrency(this.currencies[this.currencies.indexOf(targetCurrency)])
+            }, 100);
+            event.preventDefault();
+         }else{
+         }
+    },
+    handlePageAdvancement( newUrl ){
+      this.sequence = { prev: this.sequence.curr, curr: this.sequence.curr+1 };
+      history.pushState( { sequence: this.sequence }, null, newUrl );
     }
   },
   mounted() {
-     window.addEventListener('popstate', this.PopStateEventHandler);
+    window.addEventListener('popstate', this.PopStateEventHandler);
  },
  destroyed(){
+   setTimeout(() => {
     window.removeEventListener('popstate' , this.PopStateEventHandler)
+   }, 500);
  }
 }
 </script>
